@@ -1,6 +1,6 @@
 {
   "name": "intervals-mcp-server",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Model Context Protocol (MCP) server for the Intervals.icu API — activities, wellness, power curves & training calendar",
   "type": "module",
   "license": "MIT",
