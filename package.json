@@ -1,0 +1,52 @@
+{
+  "name": "intervals-mcp-server",
+  "version": "1.0.1",
+  "description": "Model Context Protocol (MCP) server for the Intervals.icu API — TypeScript edition",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HduSy/intervals-mcp-server.git"
+  },
+  "keywords": [
+    "intervals",
+    "intervals.icu",
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "cycling",
+    "running",
+    "training"
+  ],
+  "bin": {
+    "intervals-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.19"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.7.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "commander": "^15.0.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "prepublishOnly": "pnpm build && pnpm test"
+}
