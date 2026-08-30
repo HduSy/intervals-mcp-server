@@ -1,4 +1,4 @@
-# intervals-mcp-server (TypeScript)
+# intervals-mcp-server
 
 [![npm version](https://img.shields.io/npm/v/intervals-mcp-server)](https://www.npmjs.com/package/intervals-mcp-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
