@@ -97,6 +97,11 @@ export const registerActivityTools: ToolRegistrar = (server) => {
       title: "Get Activities",
       description:
         "Get a list of activities for an athlete from Intervals.icu.\n\n" +
+        "Each activity includes a 'Sync:' line with a derived data-completeness verdict, " +
+        "last-sync time (icu_sync_date) and upstream source. If the verdict is not " +
+        "'complete' (e.g. analysis pending or streams still syncing), treat the metrics " +
+        "as provisional and caveat or re-check later instead of answering confidently " +
+        "from partial data.\n\n" +
         "Args:\n" +
         "    athlete_id: The Intervals.icu athlete ID (optional, uses the configured default)\n" +
         "    api_key: The Intervals.icu API key (optional, uses the configured default)\n" +
@@ -164,7 +169,12 @@ export const registerActivityTools: ToolRegistrar = (server) => {
     "get_activity_details",
     {
       title: "Get Activity Details",
-      description: "Get detailed information for a specific activity from Intervals.icu.",
+      description:
+        "Get detailed information for a specific activity from Intervals.icu.\n\n" +
+        "Includes a 'Sync & Data Completeness' section built from native API signals " +
+        "(analyzed, icu_sync_date, icu_sync_error, analysis_issues, stream_types, source). " +
+        "'Data Complete' is a derived verdict: if it is not 'complete', the activity may " +
+        "still be syncing or processing — treat metrics as provisional and re-check later.",
       inputSchema: {
         activity_id: z.string().describe("The Intervals.icu activity ID"),
         api_key: z.string().optional(),
@@ -189,7 +199,7 @@ export const registerActivityTools: ToolRegistrar = (server) => {
 
       await resolveGearForActivity(activityData as Dict, { apiKey: api_key });
 
-      let detailedView = formatActivitySummary(activityData as Dict);
+      let detailedView = formatActivitySummary(activityData as Dict, { verbose: true });
 
       const zones = (activityData as Dict)["zones"];
       if (typeof zones === "object" && zones !== null) {
@@ -252,7 +262,10 @@ export const registerActivityTools: ToolRegistrar = (server) => {
         "This endpoint returns time-series data for an activity, including metrics like power, heart rate,\n" +
         "cadence, altitude, distance, temperature, and velocity data.\n\n" +
         "Available stream types: time, watts, heartrate, cadence, altitude, distance,\n" +
-        "core_temperature, skin_temperature, velocity_smooth",
+        "core_temperature, skin_temperature, velocity_smooth\n\n" +
+        "The response warns when a requested stream type is missing — the activity's " +
+        "streams may still be syncing. Check get_activity_details (Sync & Data " +
+        "Completeness section) before concluding the athlete has no such data.",
       inputSchema: {
         activity_id: z.string().describe("The Intervals.icu activity ID"),
         api_key: z.string().optional(),
@@ -299,6 +312,24 @@ export const registerActivityTools: ToolRegistrar = (server) => {
           }
         }
         summary += "\n";
+      }
+
+      // Warn about requested streams that are absent — they may still be
+      // syncing upstream rather than genuinely not recorded.
+      const requestedTypes = (stream_types || DEFAULT_STREAM_TYPES)
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      const returnedTypes = new Set(
+        streams.map((stream) => String(stream["type"] ?? "")).filter(Boolean),
+      );
+      const missing = requestedTypes.filter((t) => !returnedTypes.has(t));
+      if (missing.length) {
+        summary +=
+          `Warning: requested streams not returned: ${missing.join(", ")}. ` +
+          "These may not exist for this activity, or the activity's streams may still " +
+          "be syncing — check get_activity_details (Sync & Data Completeness) before " +
+          "concluding the data is absent.\n";
       }
 
       return textResult(summary);

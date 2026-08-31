@@ -5,6 +5,7 @@
  */
 
 import { formatIsoDateTime } from "./dates.js";
+import { formatSyncLine, formatSyncSection } from "./completeness.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Dict = Record<string, any>;
@@ -13,7 +14,12 @@ export type Dict = Record<string, any>;
 // Activities
 // ---------------------------------------------------------------------------
 
-export function formatActivitySummary(activity: Dict): string {
+export interface ActivitySummaryOptions {
+  /** Detail views append the full sync/completeness/provenance block. */
+  verbose?: boolean;
+}
+
+export function formatActivitySummary(activity: Dict, options: ActivitySummaryOptions = {}): string {
   let startTime = activity["startTime"] ?? activity["start_date"] ?? "Unknown";
   if (typeof startTime === "string" && startTime.length > 10) {
     startTime = formatIsoDateTime(startTime);
@@ -46,10 +52,13 @@ export function formatActivitySummary(activity: Dict): string {
     gearId = activity["gear_id"] ?? "N/A";
   }
 
-  return `Activity: ${activity["name"] ?? "Unnamed"}
+  const syncLine = formatSyncLine(activity);
+
+  let summary = `Activity: ${activity["name"] ?? "Unnamed"}
 ID: ${activity["id"] ?? "N/A"}
 Type: ${activity["type"] ?? "Unknown"}
 Date: ${startTime}
+${syncLine}
 Description: ${activity["description"] ?? "N/A"}
 Distance: ${activity["distance"] ?? 0} meters
 Duration: ${activity["duration"] ?? activity["elapsed_time"] ?? 0} seconds
@@ -113,6 +122,12 @@ File Type: ${activity["file_type"] ?? "N/A"}
 Gear:
 Name: ${gearName}
 ID: ${gearId}`;
+
+  if (options.verbose) {
+    summary += `\n\n${formatSyncSection(activity)}`;
+  }
+
+  return summary;
 }
 
 export function formatWorkout(workout: Dict): string {
