@@ -139,6 +139,23 @@ TSS: ${workout["tss"] ?? "N/A"}
 Intervals: ${(workout["intervals"] ?? []).length}`;
 }
 
+/**
+ * Zip a latlng stream into [lat, lng] points.
+ *
+ * The Intervals.icu API stores latitude in `data` and longitude in a
+ * sibling `data2` field (present only on the latlng stream). Zipping them
+ * keeps consumers from silently losing the longitude half.
+ */
+export function zipLatLngStream(stream: Dict): unknown[] {
+  const data = (stream["data"] ?? []) as unknown[];
+  const data2 = stream["data2"];
+  if (!Array.isArray(data2)) return data;
+  return data.map((lat, i) => {
+    const lng = data2[i];
+    return lat == null || lng == null ? null : [lat, lng];
+  });
+}
+
 export function formatActivityMessage(message: Dict): string {
   let created = message["created"] ?? "Unknown";
   if (typeof created === "string" && created.length > 10) {

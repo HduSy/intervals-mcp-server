@@ -10,6 +10,7 @@ import {
   formatIntervals,
   formatPowerCurves,
   formatWellnessEntry,
+  zipLatLngStream,
   type CurveDataPoint,
   type ExtractedCurve,
 } from "../src/utils/formatting.js";
@@ -239,5 +240,21 @@ describe("formatPowerCurves", () => {
   it("notes empty curves", () => {
     const out = formatPowerCurves([curve([])], "Ride", true);
     expect(out).toContain("No data available for requested durations.");
+  });
+});
+
+describe("zipLatLngStream", () => {
+  it("zips data (lat) and data2 (lng) into [lat, lng] points", () => {
+    const out = zipLatLngStream({
+      type: "latlng",
+      data: [30.234358, null, 30.234306],
+      data2: [120.19866, 120.1985, null],
+    });
+    expect(out).toEqual([[30.234358, 120.19866], null, null]);
+  });
+
+  it("passes data through unchanged when data2 is absent", () => {
+    const out = zipLatLngStream({ type: "watts", data: [100, 110] });
+    expect(out).toEqual([100, 110]);
   });
 });

@@ -10,6 +10,7 @@ import {
   formatActivityMessage,
   formatActivitySummary,
   formatIntervals,
+  zipLatLngStream,
   type Dict,
 } from "../utils/formatting.js";
 import { resolveAthleteId, resolveDateParams } from "../utils/validation.js";
@@ -262,7 +263,9 @@ export const registerActivityTools: ToolRegistrar = (server) => {
         "This endpoint returns time-series data for an activity, including metrics like power, heart rate,\n" +
         "cadence, altitude, distance, temperature, and velocity data.\n\n" +
         "Available stream types: time, watts, heartrate, cadence, altitude, distance,\n" +
-        "core_temperature, skin_temperature, velocity_smooth\n\n" +
+        "core_temperature, skin_temperature, velocity_smooth, latlng\n\n" +
+        "Note: the latlng stream is returned as [lat, lng] points (the API stores\n" +
+        "latitude in `data` and longitude in a sibling `data2` field).\n\n" +
         "The response warns when a requested stream type is missing — the activity's " +
         "streams may still be syncing. Check get_activity_details (Sync & Data " +
         "Completeness section) before concluding the athlete has no such data.",
@@ -296,7 +299,10 @@ export const registerActivityTools: ToolRegistrar = (server) => {
       for (const stream of streams) {
         const streamType = stream["type"] ?? "unknown";
         const streamName = stream["name"] ?? streamType;
-        const data = (stream["data"] ?? []) as unknown[];
+        // latlng carries latitude in `data` and longitude in `data2` — zip
+        // into [lat, lng] points so the longitude half isn't lost.
+        const data =
+          streamType === "latlng" ? zipLatLngStream(stream) : ((stream["data"] ?? []) as unknown[]);
         const valueType = stream["valueType"] ?? "";
 
         summary += `Stream: ${streamName} (${streamType})\n`;
