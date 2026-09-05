@@ -1,6 +1,7 @@
 # intervals-mcp-server
 
 [![npm version](https://img.shields.io/npm/v/intervals-mcp-server)](https://www.npmjs.com/package/intervals-mcp-server)
+[![Publish](https://github.com/HduSy/intervals-mcp-server/actions/workflows/publish.yml/badge.svg)](https://github.com/HduSy/intervals-mcp-server/actions/workflows/publish.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for the
@@ -8,7 +9,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for the
 any other MCP client to your training data — activities, events, wellness
 metrics, power curves, gear and custom items.
 
-Zero-config first run: `npx intervals-mcp-server` walks you through
+Zero-config first run: `npx intervals-mcp-server@latest` walks you through
 authentication in your terminal and saves everything for future runs.
 
 ## Requirements
@@ -39,7 +40,7 @@ The wizard will:
 **Claude Code**
 
 ```bash
-claude mcp add intervals -s user -- npx intervals-mcp-server
+claude mcp add intervals -s user -- npx intervals-mcp-server@latest
 ```
 
 **Claude Desktop** — `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
@@ -47,7 +48,7 @@ claude mcp add intervals -s user -- npx intervals-mcp-server
 ```json
 {
   "mcpServers": {
-    "intervals": { "command": "npx", "args": ["intervals-mcp-server"] }
+    "intervals": { "command": "npx", "args": ["intervals-mcp-server@latest"] }
   }
 }
 ```
@@ -57,7 +58,7 @@ claude mcp add intervals -s user -- npx intervals-mcp-server
 ```json
 {
   "mcpServers": {
-    "intervals": { "command": "npx", "args": ["intervals-mcp-server"] }
+    "intervals": { "command": "npx", "args": ["intervals-mcp-server@latest"] }
   }
 }
 ```
@@ -78,7 +79,7 @@ If you prefer declaring credentials in your MCP client config:
   "mcpServers": {
     "intervals": {
       "command": "npx",
-      "args": ["intervals-mcp-server"],
+      "args": ["intervals-mcp-server@latest"],
       "env": {
         "API_KEY": "your-api-key",
         "ATHLETE_ID": "your-athlete-id"
@@ -104,6 +105,30 @@ Resolution order: `API_KEY` / `ATHLETE_ID` env vars → config file.
 
 Tool names use stable snake_case identifiers, so prompts and integrations keep
 working across updates.
+
+## Data completeness & provenance
+
+Activities can arrive partially — the activity record lands before all
+streams and server-side analysis finish. To keep the model from answering
+confidently from half-synced data, the activity tools surface native API
+signals and derive a verdict from them:
+
+- `get_activities` — one-line `Sync:` verdict per activity
+  (complete / pending / incomplete) plus last-sync time and upstream source
+- `get_activity_details` — full **Sync & Data Completeness** section:
+  `analyzed`, `icu_sync_date`, `icu_sync_error`, `analysis_issues`,
+  `stream_types`, `source` / `external_id`
+- `get_activity_streams` — warns when a requested stream type is missing
+  (it may still be syncing) instead of silently omitting it
+
+The verdict is marked `(derived)` — the API has no explicit completeness
+flag. Caveat per the Intervals.icu maintainer: `analyzed` may stay null on
+Strava-sourced activities while the data is fine; those are reported as
+pending rather than incomplete.
+
+Stream quirk handled for you: the `latlng` stream stores latitude in
+`data` and longitude in a sibling `data2` field; the streams tool zips
+them into `[lat, lng]` points so the longitude half isn't lost.
 
 ## CLI reference
 
@@ -132,7 +157,7 @@ npx intervals-mcp-server serve --transport streamable-http --port 8765
 ```bash
 pnpm install
 pnpm build        # tsup → dist/
-pnpm test         # vitest (99 tests)
+pnpm test         # vitest (114 tests)
 pnpm typecheck    # tsc --noEmit
 pnpm smoke        # end-to-end: spawn server, listTools, live API calls
                    # (needs API_KEY / ATHLETE_ID)
@@ -140,12 +165,16 @@ pnpm smoke        # end-to-end: spawn server, listTools, live API calls
 
 ### Publishing
 
+Releases are published by GitHub Actions (`.github/workflows/publish.yml`):
+
 ```bash
-npm login
-npm publish        # with 2FA enabled: npm publish --otp=123456
+# bump "version" in package.json, commit, then:
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
-`prepublishOnly` runs build + tests automatically.
+The workflow installs dependencies, runs typecheck + tests + build, then
+publishes to npm with provenance using the `NPM_TOKEN` repository secret.
 
 ## License
 
